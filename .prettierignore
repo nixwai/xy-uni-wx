@@ -1,0 +1,6 @@
+# Oxfmt 与构建产物忽略规则
+node_modules/
+dist/
+unpackage/
+coverage/
+static/

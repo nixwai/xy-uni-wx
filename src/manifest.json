@@ -1,0 +1,19 @@
+{
+  "name": "xy-uni-wx",
+  "appid": "__UNI__XY_UNI_WX",
+  "description": "面向微信小程序的 uni-app Vue 3 前端项目",
+  "versionName": "0.1.0",
+  "versionCode": "1",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": true
+    },
+    "usingComponents": true
+  },
+  "vueVersion": "3",
+  "uniStatistics": {
+    "enable": false
+  }
+}

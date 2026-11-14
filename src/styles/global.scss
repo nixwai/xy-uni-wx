@@ -1,0 +1,12 @@
+:root {
+  --app-background-color: #f7f8fa;
+  --app-text-color: #1d2129;
+  --app-muted-text-color: #86909c;
+  --app-border-color: #e5e6eb;
+}
+
+page {
+  min-height: 100%;
+  background: var(--app-background-color);
+  color: var(--app-text-color);
+}

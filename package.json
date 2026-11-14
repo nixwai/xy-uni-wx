@@ -1,0 +1,51 @@
+{
+  "name": "xy-uni-wx",
+  "version": "0.1.0",
+  "private": true,
+  "description": "面向微信小程序的 uni-app Vue 3 前端项目",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm dev:mp-weixin",
+    "dev:mp-weixin": "pnpm pages:generate && uni -p mp-weixin",
+    "build": "pnpm build:mp-weixin",
+    "build:mp-weixin": "pnpm pages:generate && uni build -p mp-weixin",
+    "pages:generate": "tsx scripts/generate-pages.ts",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "oxlint --type-aware --vue-plugin --deny-warnings src tests scripts",
+    "lint:fix": "oxlint --type-aware --vue-plugin --fix src tests scripts",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test:coverage"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-5030620261112001",
+    "@dcloudio/uni-components": "3.0.0-alpha-5030620261112001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5030620261112001",
+    "pinia": "2.1.7",
+    "vue": "3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "3.4.31",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5030620261112001",
+    "@types/node": "22.12.0",
+    "@types/wechat-miniprogram": "3.4.10",
+    "@vitest/coverage-v8": "2.1.9",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "oxlint-tsgolint": "7.0.2007",
+    "sass": "1.93.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vite": "5.2.8",
+    "vitest": "2.1.9",
+    "vue-tsc": "2.2.12"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@12.16.1"
+}
