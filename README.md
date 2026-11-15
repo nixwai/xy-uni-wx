@@ -1,19 +1,21 @@
 # xy-uni-wx
 
-面向微信小程序的 uni-app + Vue 3 + TypeScript 前端项目。
+面向微信小程序与 H5 的 uni-app + Vue 3 + TypeScript 前端项目。
 
 ## 环境
 
 - Node.js `>=22.12.0`
 - pnpm `>=10.0.0`，项目锁定 `pnpm@12.16.1`
-- 运行目标：微信小程序（`mp-weixin`）
+- 运行目标：微信小程序（`mp-weixin`）和 H5（开发端口 `5173`）
 
 ## 常用命令
 
 ```bash
 pnpm install
 pnpm dev:mp-weixin
+pnpm dev:h5
 pnpm build:mp-weixin
+pnpm build:h5
 pnpm typecheck
 pnpm lint
 pnpm format
@@ -38,4 +40,4 @@ pnpm install
 - 请求统一通过 `src/services/request`；业务 API 按领域新增到 `src/services/api`，页面不得直接调用 `uni.request`。
 - `.env.*` 只允许公开运行配置；`VITE_*` 会进入客户端，禁止放入密钥、令牌和个人凭据。
 - 修改依赖时必须同时确认 uni-app alpha 编译器、Vite、Vue 版本的兼容性，不要单独升级其中一个核心包。
-- 修改后至少执行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check` 和 `pnpm test:coverage`；涉及页面或构建配置时再执行 `pnpm build:mp-weixin`。
+- 修改后至少执行 `pnpm typecheck`、`pnpm lint`、`pnpm format:check` 和 `pnpm test:coverage`；涉及页面或构建配置时再执行 `pnpm build:mp-weixin` 与 `pnpm build:h5`。

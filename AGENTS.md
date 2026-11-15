@@ -2,8 +2,9 @@
 
 ## 项目事实
 
-- 这是一个只面向微信小程序的 uni-app Vue 3 + TypeScript 前端项目，构建目标为 `mp-weixin`。
+- 这是一个面向微信小程序与 H5 的 uni-app Vue 3 + TypeScript 前端项目，运行目标为 `mp-weixin` 与 `h5`。
 - 使用 pnpm；Node.js `>=22.12.0`，项目锁定 `pnpm@12.16.1`。
+- H5 开发命令为 `pnpm dev:h5`，固定使用端口 `5173`；微信小程序开发命令为 `pnpm dev:mp-weixin`。
 - `@dcloudio/*` 必须保持同一编译器版本 `3.0.0-alpha-5030620261112001`；Vite `5.2.8`、Vue `3.4.21` 不要单独升级。
 
 ## 修改约束
@@ -20,9 +21,11 @@
 ```bash
 pnpm install
 pnpm check
+pnpm dev:h5
+pnpm build:h5
 pnpm build:mp-weixin
 ```
 
-`pnpm check` 必须同时通过类型检查、OXC lint、OXC format 和测试覆盖率（80%）。微信小程序构建产物在 `dist/`，仅供微信开发者工具导入，不得提交。
+`pnpm check` 必须同时通过类型检查、OXC lint、OXC format 和测试覆盖率（80%）。构建产物在 `dist/`，仅供本地验证或平台工具导入，不得提交。
 
 若 pnpm 12 拦截依赖构建脚本，确认依赖来源后执行 `pnpm approve-builds --all`，再执行 `pnpm install`。
