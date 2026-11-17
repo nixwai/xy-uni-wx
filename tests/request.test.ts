@@ -122,6 +122,24 @@ describe('请求服务', () => {
     })
   })
 
+  it('调用方不能覆盖请求客户端注入的认证令牌', async () => {
+    const requests: Array<{ headers: Record<string, string> }> = []
+    const adapter: RequestAdapter = async (options) => {
+      requests.push({ headers: options.headers })
+      return { statusCode: 204, data: undefined, headers: {} }
+    }
+    const client = new RequestClient({
+      baseUrl: 'https://api.example.com',
+      timeoutMs: 5000,
+      adapter,
+      getToken: () => 'trusted-token',
+    })
+
+    await client.get('/private', { headers: { authorization: 'spoofed-token' } })
+
+    expect(requests).toEqual([{ headers: { Authorization: 'Bearer trusted-token' } }])
+  })
+
   it('在请求前注入令牌并保留请求参数', async () => {
     const requests: Array<{ headers: Record<string, string>; data: unknown }> = []
     const adapter: RequestAdapter = async (options) => {

@@ -14,7 +14,9 @@ import type {
 import { RequestError } from './types'
 
 function isApiEnvelope(value: unknown): value is { code: number; data: unknown; message?: string } {
-  return typeof value === 'object' && value !== null && 'code' in value
+  return (
+    typeof value === 'object' && value !== null && 'code' in value && typeof value.code === 'number'
+  )
 }
 
 function isBusinessFailure(value: unknown): value is { code: number; message?: string } {
@@ -64,6 +66,7 @@ function isTimeoutFailure(value: unknown): boolean {
   return typeof value.errMsg === 'string' && value.errMsg.toLowerCase().includes('timeout')
 }
 
+/** 负责组装请求、执行拦截器并归一化平台响应的请求客户端。 */
 export class RequestClient {
   private readonly options: RequestClientOptions
 
@@ -75,6 +78,7 @@ export class RequestClient {
     }
   }
 
+  /** 返回追加请求拦截器后的新客户端，不修改当前实例。 */
   withRequestInterceptor(interceptor: RequestInterceptor): RequestClient {
     return new RequestClient({
       ...this.options,
@@ -82,6 +86,7 @@ export class RequestClient {
     })
   }
 
+  /** 返回追加响应拦截器后的新客户端，不修改当前实例。 */
   withResponseInterceptor(interceptor: ResponseInterceptor): RequestClient {
     return new RequestClient({
       ...this.options,
@@ -89,6 +94,7 @@ export class RequestClient {
     })
   }
 
+  /** 使用 GET 方法发起请求。 */
   async get<TResponse = unknown>(
     url: string,
     options: Omit<RequestOptions, 'url' | 'method'> = {},
@@ -96,6 +102,7 @@ export class RequestClient {
     return this.request<TResponse>({ ...options, url, method: 'GET' })
   }
 
+  /** 使用 POST 方法发起请求。 */
   async post<TResponse = unknown>(
     url: string,
     options: Omit<RequestOptions, 'url' | 'method'> = {},
@@ -103,6 +110,7 @@ export class RequestClient {
     return this.request<TResponse>({ ...options, url, method: 'POST' })
   }
 
+  /** 使用 PUT 方法发起请求。 */
   async put<TResponse = unknown>(
     url: string,
     options: Omit<RequestOptions, 'url' | 'method'> = {},
@@ -110,6 +118,7 @@ export class RequestClient {
     return this.request<TResponse>({ ...options, url, method: 'PUT' })
   }
 
+  /** 使用 DELETE 方法发起请求。 */
   async delete<TResponse = unknown>(
     url: string,
     options: Omit<RequestOptions, 'url' | 'method'> = {},
@@ -117,6 +126,7 @@ export class RequestClient {
     return this.request<TResponse>({ ...options, url, method: 'DELETE' })
   }
 
+  /** 执行请求并返回经过业务包装解包和响应拦截后的数据。 */
   async request<TResponse = unknown>(input: RequestOptions): Promise<TResponse> {
     const options = await this.applyRequestInterceptors(input)
     const adapterOptions: AdapterOptions = {
@@ -154,7 +164,7 @@ export class RequestClient {
       data = await interceptor(data, response)
     }
 
-    // API 业务层应对外部响应做运行时校验，再声明具体响应类型。
+    // 请求客户端只负责解包，具体接口在 API 层校验响应字段。
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     return data as TResponse
   }
@@ -171,9 +181,15 @@ export class RequestClient {
     headers: Readonly<Record<string, string>> | undefined,
   ): Record<string, string> {
     const token = this.options.getToken?.()
+    const normalizedHeaders = token
+      ? Object.fromEntries(
+          Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'authorization'),
+        )
+      : { ...headers }
+
     return {
+      ...normalizedHeaders,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
     }
   }
 }
@@ -202,6 +218,7 @@ function createUniRequestAdapter(): RequestAdapter {
       })
     })
 }
+/** 使用当前应用配置的共享请求客户端。 */
 export const requestClient = new RequestClient({
   baseUrl: appConfig.apiBaseUrl,
   timeoutMs: appConfig.requestTimeoutMs,
@@ -210,6 +227,7 @@ export const requestClient = new RequestClient({
   onUnauthorized: () => clearAuthTokens(),
 })
 
+/** 使用应用默认配置发起请求。 */
 export function request<TResponse = unknown>(options: RequestOptions): Promise<TResponse> {
   return requestClient.request<TResponse>(options)
 }

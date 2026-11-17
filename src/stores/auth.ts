@@ -11,8 +11,10 @@ import { clearAuthTokens, getAccessToken } from '@/shared/utils/token-storage'
 import { getUserFacingErrorMessage } from '@/shared/utils/error'
 import { RequestError } from '@/services/request'
 
+/** 认证状态机的当前状态。 */
 export type AuthStatus = 'idle' | 'loading' | 'anonymous' | 'authenticated' | 'error'
 
+/** 管理登录态恢复、登录、退出和当前用户资料的应用级 store。 */
 export const useAuthStore = defineStore('auth', () => {
   const profile = ref<UserProfile | null>(null)
   const status = ref<AuthStatus>('idle')
@@ -21,11 +23,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => status.value === 'authenticated' && profile.value !== null)
 
+  /** 清除当前用户资料并回到未登录状态。 */
   function resetLocalState(): void {
     profile.value = null
     status.value = 'anonymous'
   }
 
+  /** 根据本地访问令牌恢复当前用户资料。 */
   async function hydrate(): Promise<void> {
     if (isBusy.value || status.value === 'loading') {
       return
@@ -38,6 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     status.value = 'loading'
+    isBusy.value = true
     try {
       profile.value = await userApi.getCurrentUser()
       status.value = 'authenticated'
@@ -53,9 +58,12 @@ export const useAuthStore = defineStore('auth', () => {
       if (!unauthorized) {
         status.value = 'error'
       }
+    } finally {
+      isBusy.value = false
     }
   }
 
+  /** 执行登录动作并在成功或失败后同步认证状态。 */
   async function login(action: () => Promise<UserProfile>): Promise<void> {
     if (isBusy.value) {
       return
@@ -75,14 +83,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /** 使用微信登录并更新当前认证状态。 */
   async function loginForWechat(): Promise<void> {
     return login(loginWithWechat)
   }
 
+  /** 使用 H5 开发登录并更新当前认证状态。 */
   async function loginForDevelopment(): Promise<void> {
     return login(loginWithDevelopment)
   }
 
+  /** 调用退出流程并无条件清理本地认证状态。 */
   async function logout(): Promise<void> {
     if (isBusy.value) {
       return

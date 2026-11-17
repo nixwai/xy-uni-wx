@@ -50,6 +50,25 @@ describe('用户认证状态', () => {
     expect(userApiMock.getCurrentUser).not.toHaveBeenCalled()
   })
 
+  it('恢复用户资料期间标记忙碌并在完成后释放', async () => {
+    stubStorage('access-token')
+    let resolveProfile!: (value: UserProfile) => void
+    userApiMock.getCurrentUser.mockReturnValue(
+      new Promise<UserProfile>((resolve) => {
+        resolveProfile = resolve
+      }),
+    )
+    const store = useAuthStore()
+
+    const hydration = store.hydrate()
+    expect(store.isBusy).toBe(true)
+
+    resolveProfile(profile)
+    await hydration
+
+    expect(store.isBusy).toBe(false)
+  })
+
   it('有本地令牌时加载当前用户资料', async () => {
     stubStorage('access-token')
     userApiMock.getCurrentUser.mockResolvedValue(profile)

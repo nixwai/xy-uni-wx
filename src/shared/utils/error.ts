@@ -1,5 +1,6 @@
 import { RequestError } from '@/services/request'
 
+/** 将请求、平台或未知异常转换为可直接展示的中文提示。 */
 export function getUserFacingErrorMessage(error: unknown): string {
   if (error instanceof RequestError) {
     if (error.kind === 'timeout') {

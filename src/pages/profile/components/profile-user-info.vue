@@ -1,6 +1,12 @@
 <template>
   <view class="profile-card">
-    <image v-if="avatarUrl" class="profile-avatar" :src="avatarUrl" alt="用户头像" mode="aspectFill" />
+    <image
+      v-if="avatarUrl"
+      class="profile-avatar"
+      :src="avatarUrl"
+      alt="用户头像"
+      mode="aspectFill"
+    />
     <view v-else class="profile-avatar profile-avatar--placeholder" aria-hidden="true">
       <view class="profile-avatar__head" />
       <view class="profile-avatar__body" />

@@ -1,5 +1,6 @@
 import { PAGE_PATHS, TAB_BAR_ITEMS } from '../router/routes'
 
+/** 页面和原生 tabBar 的统一配置源。 */
 export const pagesConfig = {
   pages: [
     {

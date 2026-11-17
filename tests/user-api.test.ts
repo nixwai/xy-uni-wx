@@ -96,6 +96,21 @@ describe('用户 API 服务', () => {
     await expect(userApi.getCurrentUser()).rejects.toThrow('用户信息响应格式无效')
   })
 
+  it('拒绝字段类型不正确的登录响应', async () => {
+    requestMock.mockResolvedValueOnce({
+      accessToken: 123,
+      refreshToken: 'refresh-token',
+      user: { id: 'user-1' },
+    })
+
+    await expect(userApi.loginForDevelopment()).rejects.toThrow('登录响应格式无效')
+  })
+
+  it('拒绝空白刷新令牌', async () => {
+    await expect(userApi.logout('  ')).rejects.toThrow('刷新令牌无效')
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
   it('调用用户退出登录接口', async () => {
     requestMock.mockResolvedValueOnce(null)
 

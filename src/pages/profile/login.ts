@@ -24,6 +24,7 @@ function toError(value: unknown, fallback: string): Error {
   return new Error(fallback)
 }
 
+/** 仅在 H5 编译分支中开放开发登录，避免其他平台暴露该入口。 */
 function isDevelopmentLoginAllowed(): boolean {
   let allowed = false
   // #ifdef H5
@@ -32,6 +33,7 @@ function isDevelopmentLoginAllowed(): boolean {
   return allowed
 }
 
+/** 将 uni.login 的回调结果转换为可复用的 Promise。 */
 function requestWechatCode(): Promise<string> {
   return new Promise((resolve, reject) => {
     uni.login({
@@ -49,6 +51,7 @@ function requestWechatCode(): Promise<string> {
   })
 }
 
+/** 尝试读取微信公开资料；用户拒绝授权时继续使用登录凭证完成登录。 */
 function requestWechatProfile(): Promise<WechatProfile | undefined> {
   if (typeof uni.getUserProfile !== 'function') {
     return Promise.resolve(undefined)
@@ -72,6 +75,7 @@ function requestWechatProfile(): Promise<WechatProfile | undefined> {
   })
 }
 
+/** 保存服务端令牌并加载用户资料，资料加载失败时回滚已保存令牌。 */
 function saveTokenAndLoadUser(tokenResponse: {
   accessToken: string
   refreshToken: string
@@ -86,10 +90,12 @@ function saveTokenAndLoadUser(tokenResponse: {
   })
 }
 
+/** 返回当前构建是否允许使用 H5 开发登录。 */
 export function isH5Development(): boolean {
   return isDevelopmentLoginAllowed()
 }
 
+/** 获取微信登录凭证，完成服务端登录并加载当前用户资料。 */
 export async function loginWithWechat(): Promise<UserProfile> {
   const code = await requestWechatCode()
   const profile = await requestWechatProfile()
@@ -101,6 +107,7 @@ export async function loginWithWechat(): Promise<UserProfile> {
   return saveTokenAndLoadUser(await userApi.loginWithWechat(payload))
 }
 
+/** 在 H5 开发环境中完成免微信授权登录并加载当前用户资料。 */
 export async function loginWithDevelopment(): Promise<UserProfile> {
   if (!isDevelopmentLoginAllowed()) {
     throw new Error('开发登录仅支持 H5 开发环境')
@@ -111,6 +118,7 @@ export async function loginWithDevelopment(): Promise<UserProfile> {
   )
 }
 
+/** 使用本地刷新令牌通知服务端退出，并始终清理本地令牌。 */
 export async function logoutWithRefreshToken(): Promise<void> {
   const refreshToken = getRefreshToken()
   try {

@@ -28,6 +28,10 @@ describe('路由调用封装', () => {
     })
   })
 
+  it('拒绝无效的返回层级', async () => {
+    await expect(navigateBack(0)).rejects.toThrow('返回层级必须是正整数')
+  })
+
   it('调用返回 API 并传递返回层级', async () => {
     const navigateBackMock = vi.fn((options) => options.success())
     vi.stubGlobal('uni', { navigateBack: navigateBackMock })
