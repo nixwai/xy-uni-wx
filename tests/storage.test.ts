@@ -6,7 +6,7 @@ import {
   getRefreshToken,
   setAccessToken,
   setAuthTokens,
-} from '@/shared/utils/storage'
+} from '@/shared/utils/token-storage'
 
 describe('本地存储工具', () => {
   it('读写并清除访问令牌', () => {

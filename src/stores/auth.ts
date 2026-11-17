@@ -7,7 +7,7 @@ import {
   logoutWithRefreshToken,
 } from '@/pages/profile/login'
 import type { UserProfile } from '@/shared/types/user'
-import { clearAuthTokens, getAccessToken } from '@/shared/utils/storage'
+import { clearAuthTokens, getAccessToken } from '@/shared/utils/token-storage'
 import { getUserFacingErrorMessage } from '@/shared/utils/error'
 import { RequestError } from '@/services/request'
 

@@ -80,14 +80,18 @@ describe('用户 API 服务', () => {
     })
   })
 
-  it('拒绝结构不完整的登录响应', async () => {
-    requestMock.mockResolvedValueOnce({ accessToken: 'access-token' })
+  it.each([
+    ['accessToken', { refreshToken: 'refresh-token', user: { id: 'user-1' } }],
+    ['refreshToken', { accessToken: 'access-token', user: { id: 'user-1' } }],
+    ['user.id', { accessToken: 'access-token', refreshToken: 'refresh-token', user: {} }],
+  ])('拒绝缺少 %s 的登录响应', async (_field, response) => {
+    requestMock.mockResolvedValueOnce(response)
 
     await expect(userApi.loginForDevelopment()).rejects.toThrow('登录响应格式无效')
   })
 
-  it('拒绝结构不完整的用户资料响应', async () => {
-    requestMock.mockResolvedValueOnce({ id: 'user-1' })
+  it('拒绝缺少 id 的用户资料响应', async () => {
+    requestMock.mockResolvedValueOnce({ nickname: '微信用户' })
 
     await expect(userApi.getCurrentUser()).rejects.toThrow('用户信息响应格式无效')
   })

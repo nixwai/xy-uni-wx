@@ -1,5 +1,5 @@
 import { appConfig } from '@/config'
-import { clearAuthTokens, getAccessToken } from '@/shared/utils/storage'
+import { clearAuthTokens, getAccessToken } from '@/shared/utils/token-storage'
 import { joinUrl } from '@/shared/utils/url'
 import type {
   AdapterOptions,
@@ -14,13 +14,7 @@ import type {
 import { RequestError } from './types'
 
 function isApiEnvelope(value: unknown): value is { code: number; data: unknown; message?: string } {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'code' in value &&
-    typeof value.code === 'number' &&
-    'data' in value
-  )
+  return typeof value === 'object' && value !== null && 'code' in value
 }
 
 function isBusinessFailure(value: unknown): value is { code: number; message?: string } {

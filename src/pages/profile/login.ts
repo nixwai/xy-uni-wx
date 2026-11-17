@@ -1,12 +1,13 @@
 import { userApi } from '@/services/api/user'
-import { clearAuthTokens, getRefreshToken, setAuthTokens } from '@/shared/utils/storage'
+import { clearAuthTokens, getRefreshToken, setAuthTokens } from '@/shared/utils/token-storage'
 import type { UserProfile, WechatLoginRequest } from '@/shared/types/user'
-import { H5_DEVELOPMENT_NICKNAME } from './constants'
 
 interface WechatProfile {
   nickname?: string
   avatarUrl?: string
 }
+
+const H5_DEVELOPMENT_NICKNAME = 'H5开发用户'
 
 function toError(value: unknown, fallback: string): Error {
   if (value instanceof Error && value.message) {
