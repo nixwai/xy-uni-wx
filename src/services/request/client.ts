@@ -1,5 +1,5 @@
 import { appConfig } from '@/config'
-import { getAccessToken } from '@/shared/utils/storage'
+import { clearAuthTokens, getAccessToken } from '@/shared/utils/storage'
 import { joinUrl } from '@/shared/utils/url'
 import type {
   AdapterOptions,
@@ -148,7 +148,11 @@ export class RequestClient {
       throw error
     }
     if (isBusinessFailure(response.data)) {
-      throw createBusinessError(response.data)
+      const error = createBusinessError(response.data)
+      if (error.code === 40100) {
+        this.options.onUnauthorized?.(error)
+      }
+      throw error
     }
 
     let data: unknown = isApiEnvelope(response.data) ? response.data.data : response.data
@@ -209,6 +213,7 @@ export const requestClient = new RequestClient({
   timeoutMs: appConfig.requestTimeoutMs,
   adapter: createUniRequestAdapter(),
   getToken: getAccessToken,
+  onUnauthorized: () => clearAuthTokens(),
 })
 
 export function request<TResponse = unknown>(options: RequestOptions): Promise<TResponse> {

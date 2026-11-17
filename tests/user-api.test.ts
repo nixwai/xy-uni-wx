@@ -79,4 +79,28 @@ describe('用户 API 服务', () => {
       method: 'GET',
     })
   })
+
+  it('拒绝结构不完整的登录响应', async () => {
+    requestMock.mockResolvedValueOnce({ accessToken: 'access-token' })
+
+    await expect(userApi.loginForDevelopment()).rejects.toThrow('登录响应格式无效')
+  })
+
+  it('拒绝结构不完整的用户资料响应', async () => {
+    requestMock.mockResolvedValueOnce({ id: 'user-1' })
+
+    await expect(userApi.getCurrentUser()).rejects.toThrow('用户信息响应格式无效')
+  })
+
+  it('调用用户退出登录接口', async () => {
+    requestMock.mockResolvedValueOnce(null)
+
+    await expect(userApi.logout('refresh-token')).resolves.toBeNull()
+
+    expect(requestMock).toHaveBeenCalledWith({
+      url: '/auth/user/logout',
+      method: 'POST',
+      data: { refreshToken: 'refresh-token' },
+    })
+  })
 })

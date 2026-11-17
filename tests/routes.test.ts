@@ -18,6 +18,7 @@ describe('路由配置', () => {
     expect(registeredPaths).toEqual(Object.values(PAGE_PATHS))
     expect(tabBarPaths).toEqual(TAB_BAR_ITEMS.map((item) => item.pagePath))
     expect(pagesConfig.tabBar.list).toHaveLength(2)
+    expect(pagesConfig.tabBar.list).toEqual(TAB_BAR_ITEMS)
     expect(pagesJson).toEqual(pagesConfig)
   })
 

@@ -23,10 +23,10 @@ export const pagesConfig = {
     backgroundTextStyle: 'light',
   },
   tabBar: {
-    color: '#86909C',
-    selectedColor: '#1D2129',
+    color: '#8993A7',
+    selectedColor: '#356DFF',
     backgroundColor: '#FFFFFF',
-    borderStyle: 'black',
+    borderStyle: 'white',
     list: TAB_BAR_ITEMS,
   },
 } as const

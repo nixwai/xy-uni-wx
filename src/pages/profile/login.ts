@@ -1,6 +1,7 @@
 import { userApi } from '@/services/api/user'
-import { setAccessToken } from '@/shared/utils/storage'
+import { clearAuthTokens, getRefreshToken, setAuthTokens } from '@/shared/utils/storage'
 import type { UserProfile, WechatLoginRequest } from '@/shared/types/user'
+import { H5_DEVELOPMENT_NICKNAME } from './constants'
 
 interface WechatProfile {
   nickname?: string
@@ -70,13 +71,18 @@ function requestWechatProfile(): Promise<WechatProfile | undefined> {
   })
 }
 
-function saveTokenAndLoadUser(tokenResponse: { accessToken: string }): Promise<UserProfile> {
-  if (typeof tokenResponse.accessToken !== 'string' || tokenResponse.accessToken.length === 0) {
-    throw new Error('登录响应缺少访问令牌')
-  }
-
-  setAccessToken(tokenResponse.accessToken)
-  return userApi.getCurrentUser()
+function saveTokenAndLoadUser(tokenResponse: {
+  accessToken: string
+  refreshToken: string
+}): Promise<UserProfile> {
+  setAuthTokens({
+    accessToken: tokenResponse.accessToken,
+    refreshToken: tokenResponse.refreshToken,
+  })
+  return userApi.getCurrentUser().catch((error: unknown) => {
+    clearAuthTokens()
+    throw error
+  })
 }
 
 export function isH5Development(): boolean {
@@ -99,5 +105,18 @@ export async function loginWithDevelopment(): Promise<UserProfile> {
     throw new Error('开发登录仅支持 H5 开发环境')
   }
 
-  return saveTokenAndLoadUser(await userApi.loginForDevelopment({ nickname: 'H5开发用户' }))
+  return saveTokenAndLoadUser(
+    await userApi.loginForDevelopment({ nickname: H5_DEVELOPMENT_NICKNAME }),
+  )
+}
+
+export async function logoutWithRefreshToken(): Promise<void> {
+  const refreshToken = getRefreshToken()
+  try {
+    if (refreshToken) {
+      await userApi.logout(refreshToken)
+    }
+  } finally {
+    clearAuthTokens()
+  }
 }

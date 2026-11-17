@@ -24,6 +24,12 @@ const networkErrorAdapter: RequestAdapter = async () => {
   throw new Error('offline')
 }
 
+const businessUnauthorizedAdapter: RequestAdapter = async () => ({
+  statusCode: 200,
+  data: { code: 40100, data: null, message: '登录状态无效' },
+  headers: {},
+})
+
 describe('请求服务', () => {
   it('拼接基础地址并解包标准业务响应', async () => {
     const calls: string[] = []
@@ -85,6 +91,22 @@ describe('请求服务', () => {
       code: 1001,
       message: '业务失败',
     })
+  })
+
+  it('业务未授权响应也触发未授权扩展点', async () => {
+    const onUnauthorized = vi.fn()
+    const client = new RequestClient({
+      baseUrl: 'https://api.example.com',
+      timeoutMs: 5000,
+      adapter: businessUnauthorizedAdapter,
+      onUnauthorized,
+    })
+
+    await expect(client.get('/private')).rejects.toMatchObject({
+      kind: 'business',
+      code: 40100,
+    })
+    expect(onUnauthorized).toHaveBeenCalledOnce()
   })
 
   it('把网络异常转换为统一 RequestError', async () => {

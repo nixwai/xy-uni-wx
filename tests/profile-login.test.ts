@@ -6,11 +6,16 @@ const userApiMock = vi.hoisted(() => ({
   loginWithWechat: vi.fn(),
   loginForDevelopment: vi.fn(),
   getCurrentUser: vi.fn(),
+  logout: vi.fn(),
 }))
 
 vi.mock('@/services/api/user', () => ({ userApi: userApiMock }))
 
-import { loginWithDevelopment, loginWithWechat } from '@/pages/profile/login'
+import {
+  loginWithDevelopment,
+  loginWithWechat,
+  logoutWithRefreshToken,
+} from '@/pages/profile/login'
 
 const currentUser: UserProfile = {
   id: 'user-1',
@@ -56,6 +61,7 @@ describe('个人页登录流程', () => {
 
     expect(userApiMock.loginForDevelopment).toHaveBeenCalledWith({ nickname: 'H5开发用户' })
     expect(setStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.accessToken, 'access-token')
+    expect(setStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.refreshToken, 'refresh-token')
     expect(userApiMock.getCurrentUser).toHaveBeenCalledOnce()
   })
 
@@ -110,8 +116,25 @@ describe('个人页登录流程', () => {
       avatarUrl: 'https://example.com/avatar.png',
     })
     expect(setStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.accessToken, 'access-token')
+    expect(setStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.refreshToken, 'refresh-token')
     expect(storage.get(STORAGE_KEYS.accessToken)).toBe('access-token')
     expect(userApiMock.getCurrentUser).toHaveBeenCalledOnce()
+  })
+
+  it('登录后获取用户资料失败时清除已保存令牌', async () => {
+    const removeStorageSync = vi.fn()
+    vi.stubGlobal('uni', {
+      setStorageSync: vi.fn(),
+      removeStorageSync,
+    })
+    userApiMock.loginForDevelopment.mockResolvedValue(tokenResponse)
+    userApiMock.getCurrentUser.mockRejectedValue(new Error('用户信息加载失败'))
+    vi.stubEnv('DEV', true)
+
+    await expect(loginWithDevelopment()).rejects.toThrow('用户信息加载失败')
+
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.accessToken)
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.refreshToken)
   })
 
   it('用户拒绝资料授权时仍使用 code 登录', async () => {
@@ -150,5 +173,39 @@ describe('个人页登录流程', () => {
 
     await expect(loginWithWechat()).rejects.toThrow('微信登录凭证无效')
     expect(userApiMock.loginWithWechat).not.toHaveBeenCalled()
+  })
+
+  it('退出登录时调用服务端接口并清除本地令牌', async () => {
+    const storage = new Map<string, string>([
+      [STORAGE_KEYS.accessToken, 'access-token'],
+      [STORAGE_KEYS.refreshToken, 'refresh-token'],
+    ])
+    const setStorageSync = vi.fn((key: string, value: string) => storage.set(key, value))
+    const removeStorageSync = vi.fn((key: string) => storage.delete(key))
+    vi.stubGlobal('uni', {
+      getStorageSync: vi.fn((key: string) => storage.get(key)),
+      setStorageSync,
+      removeStorageSync,
+    })
+    userApiMock.logout.mockResolvedValue(null)
+
+    await expect(logoutWithRefreshToken()).resolves.toBeUndefined()
+
+    expect(userApiMock.logout).toHaveBeenCalledWith('refresh-token')
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.accessToken)
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.refreshToken)
+  })
+
+  it('退出接口失败时仍清除本地令牌并保留异常', async () => {
+    const removeStorageSync = vi.fn()
+    vi.stubGlobal('uni', {
+      getStorageSync: vi.fn(() => 'refresh-token'),
+      removeStorageSync,
+    })
+    userApiMock.logout.mockRejectedValue(new Error('网络请求失败'))
+
+    await expect(logoutWithRefreshToken()).rejects.toThrow('网络请求失败')
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.accessToken)
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEYS.refreshToken)
   })
 })

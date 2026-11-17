@@ -1,19 +1,19 @@
 {
-    "name" : "xy-uni-wx",
-    "appid" : "__UNI__XY_UNI_WX",
-    "description" : "面向微信小程序与 H5 的 uni-app Vue 3 前端项目",
-    "versionName" : "0.1.0",
-    "versionCode" : "1",
-    "transformPx" : false,
-    "mp-weixin" : {
-        "appid" : "wx3eb89f530367c77e",
-        "setting" : {
-            "urlCheck" : true
-        },
-        "usingComponents" : true
+  "name": "xy-uni-wx",
+  "appid": "__UNI__XY_UNI_WX",
+  "description": "面向微信小程序与 H5 的 uni-app Vue 3 前端项目",
+  "versionName": "0.1.0",
+  "versionCode": "1",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx3eb89f530367c77e",
+    "setting": {
+      "urlCheck": true
     },
-    "vueVersion" : "3",
-    "uniStatistics" : {
-        "enable" : false
-    }
+    "usingComponents": true
+  },
+  "vueVersion": "3",
+  "uniStatistics": {
+    "enable": false
+  }
 }
