@@ -7,64 +7,18 @@ import type {
   RequestAdapter,
   RequestClientOptions,
   RequestErrorKind,
-  RequestInterceptor,
   RequestOptions,
-  ResponseInterceptor,
 } from './types'
 import { RequestError } from './types'
-
-function isApiEnvelope(value: unknown): value is { code: number; data: unknown; message?: string } {
-  return (
-    typeof value === 'object' && value !== null && 'code' in value && typeof value.code === 'number'
-  )
-}
-
-function isBusinessFailure(value: unknown): value is { code: number; message?: string } {
-  return isApiEnvelope(value) && ![0, 200].includes(value.code)
-}
-
-function createNetworkError(cause: unknown): RequestError {
-  return new RequestError('网络请求失败', {
-    kind: 'network',
-    cause,
-  })
-}
-
-function createHttpError(response: AdapterResponse): RequestError {
-  return new RequestError(`HTTP 请求失败：${response.statusCode}`, {
-    kind: 'http',
-    statusCode: response.statusCode,
-    cause: response.data,
-  })
-}
-
-function createBusinessError(payload: { code: number; message?: string }): RequestError {
-  return new RequestError(payload.message ?? '业务请求失败', {
-    kind: 'business',
-    code: payload.code,
-    cause: payload,
-  })
-}
-
-function normalizeHeaders(value: unknown): Record<string, string> {
-  if (typeof value !== 'object' || value === null) {
-    return {}
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).filter(
-      (entry): entry is [string, string] => typeof entry[1] === 'string',
-    ),
-  )
-}
-
-function isTimeoutFailure(value: unknown): boolean {
-  if (typeof value !== 'object' || value === null || !('errMsg' in value)) {
-    return false
-  }
-
-  return typeof value.errMsg === 'string' && value.errMsg.toLowerCase().includes('timeout')
-}
+import { refreshAuthTokens } from './token-refresh'
+import { createNetworkError, createHttpError, createBusinessError } from '../error/error-creator'
+import {
+  isUnauthorizedError,
+  isBusinessFailure,
+  isApiEnvelope,
+  normalizeHeaders,
+  isTimeoutFailure,
+} from './helpers'
 
 /** 负责组装请求、执行拦截器并归一化平台响应的请求客户端。 */
 export class RequestClient {
@@ -78,57 +32,35 @@ export class RequestClient {
     }
   }
 
-  /** 返回追加请求拦截器后的新客户端，不修改当前实例。 */
-  withRequestInterceptor(interceptor: RequestInterceptor): RequestClient {
-    return new RequestClient({
-      ...this.options,
-      requestInterceptors: [...(this.options.requestInterceptors ?? []), interceptor],
-    })
-  }
-
-  /** 返回追加响应拦截器后的新客户端，不修改当前实例。 */
-  withResponseInterceptor(interceptor: ResponseInterceptor): RequestClient {
-    return new RequestClient({
-      ...this.options,
-      responseInterceptors: [...(this.options.responseInterceptors ?? []), interceptor],
-    })
-  }
-
-  /** 使用 GET 方法发起请求。 */
-  async get<TResponse = unknown>(
-    url: string,
-    options: Omit<RequestOptions, 'url' | 'method'> = {},
-  ): Promise<TResponse> {
-    return this.request<TResponse>({ ...options, url, method: 'GET' })
-  }
-
-  /** 使用 POST 方法发起请求。 */
-  async post<TResponse = unknown>(
-    url: string,
-    options: Omit<RequestOptions, 'url' | 'method'> = {},
-  ): Promise<TResponse> {
-    return this.request<TResponse>({ ...options, url, method: 'POST' })
-  }
-
-  /** 使用 PUT 方法发起请求。 */
-  async put<TResponse = unknown>(
-    url: string,
-    options: Omit<RequestOptions, 'url' | 'method'> = {},
-  ): Promise<TResponse> {
-    return this.request<TResponse>({ ...options, url, method: 'PUT' })
-  }
-
-  /** 使用 DELETE 方法发起请求。 */
-  async delete<TResponse = unknown>(
-    url: string,
-    options: Omit<RequestOptions, 'url' | 'method'> = {},
-  ): Promise<TResponse> {
-    return this.request<TResponse>({ ...options, url, method: 'DELETE' })
-  }
-
-  /** 执行请求并返回经过业务包装解包和响应拦截后的数据。 */
+  /** 执行请求；登录态失效时先刷新令牌并重放一次原请求。 */
   async request<TResponse = unknown>(input: RequestOptions): Promise<TResponse> {
     const options = await this.applyRequestInterceptors(input)
+
+    try {
+      return await this.execute<TResponse>(options)
+    } catch (error) {
+      const refreshable = isUnauthorizedError(error) && !options.skipTokenRefresh
+      if (!refreshable || !(await refreshAuthTokens())) {
+        if (isUnauthorizedError(error)) {
+          this.options.onUnauthorized?.(error)
+        }
+        throw error
+      }
+    }
+
+    try {
+      // 刷新成功后重放原请求，请求头会重新读取新的访问令牌。
+      return await this.execute<TResponse>(options)
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        this.options.onUnauthorized?.(error)
+      }
+      throw error
+    }
+  }
+
+  /** 执行一次平台请求并返回经过业务包装解包和响应拦截后的数据。 */
+  private async execute<TResponse>(options: RequestOptions): Promise<TResponse> {
     const adapterOptions: AdapterOptions = {
       url: joinUrl(this.options.baseUrl, options.url),
       method: options.method ?? 'GET',
@@ -145,24 +77,13 @@ export class RequestClient {
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      const error = createHttpError(response)
-      if (error.statusCode === 401) {
-        this.options.onUnauthorized?.(error)
-      }
-      throw error
+      throw createHttpError(response)
     }
     if (isBusinessFailure(response.data)) {
-      const error = createBusinessError(response.data)
-      if (error.code === 40100) {
-        this.options.onUnauthorized?.(error)
-      }
-      throw error
+      throw createBusinessError(response.data)
     }
 
-    let data: unknown = isApiEnvelope(response.data) ? response.data.data : response.data
-    for (const interceptor of this.options.responseInterceptors ?? []) {
-      data = await interceptor(data, response)
-    }
+    const data = this.applyResponseInterceptors(response)
 
     // 请求客户端只负责解包，具体接口在 API 层校验响应字段。
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
@@ -175,6 +96,14 @@ export class RequestClient {
       options = await interceptor(options)
     }
     return options
+  }
+
+  private async applyResponseInterceptors(response: AdapterResponse) {
+    let data: unknown = isApiEnvelope(response.data) ? response.data.data : response.data
+    for (const interceptor of this.options.responseInterceptors ?? []) {
+      data = await interceptor(data, response)
+    }
+    return data
   }
 
   private createHeaders(
@@ -218,6 +147,7 @@ function createUniRequestAdapter(): RequestAdapter {
       })
     })
 }
+
 /** 使用当前应用配置的共享请求客户端。 */
 export const requestClient = new RequestClient({
   baseUrl: appConfig.apiBaseUrl,

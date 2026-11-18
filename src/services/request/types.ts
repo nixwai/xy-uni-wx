@@ -15,6 +15,8 @@ export interface RequestOptions {
   data?: UniNamespace.RequestOptions['data']
   headers?: Readonly<Record<string, string>>
   timeoutMs?: number
+  /** 关闭登录态失效后的自动令牌刷新，刷新令牌接口自身必须关闭以避免递归。 */
+  skipTokenRefresh?: boolean
 }
 
 /** 适配器收到的已归一化请求参数。 */

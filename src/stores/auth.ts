@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { userApi } from '@/services/api/user'
+import { getUserFacingErrorMessage } from '@/services/error/error-message'
 import { requestWechatCode, requestWechatProfile } from '@/shared/third-party/wechat-api'
 import type { UserProfile, UserTokenResponse } from '@/shared/types/user'
 import {
@@ -9,7 +10,6 @@ import {
   getRefreshToken,
   setAuthTokens,
 } from '@/shared/utils/token-storage'
-import { getUserFacingErrorMessage } from '@/shared/utils/error'
 import { isDevelopment } from '@/shared/utils/platform'
 
 /** 认证状态机的当前状态。 */
