@@ -5,18 +5,19 @@
       <view class="profile-avatar__body" />
     </view>
     <view class="profile-actions">
+      <!-- #ifdef MP-WEIXIN -->
       <AppButton :loading="authStore.isBusy" @tap="handleWechatLogin">
         {{ authStore.isBusy ? '登录中...' : '登录/注册' }}
       </AppButton>
-      <!-- #ifdef H5 -->
+      <!-- #endif -->
       <AppButton
         v-if="showDevelopmentLogin"
+        variant="secondary"
         :loading="authStore.isBusy"
         @tap="handleDevelopmentLogin"
       >
-        {{ authStore.isBusy ? '登录中...' : '登录/注册' }}
+        {{ authStore.isBusy ? '登录中...' : '开发登录' }}
       </AppButton>
-      <!-- #endif -->
     </view>
     <text v-if="authStore.errorMessage" class="profile-error">{{ authStore.errorMessage }}</text>
   </view>

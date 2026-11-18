@@ -13,7 +13,7 @@ import { getUserFacingErrorMessage } from '@/shared/utils/error'
 import { isDevelopment } from '@/shared/utils/platform'
 
 /** 认证状态机的当前状态。 */
-export type AuthStatus = 'idle' | 'loading' | 'anonymous' | 'authenticated' | 'error'
+type AuthStatus = 'idle' | 'loading' | 'anonymous' | 'authenticated'
 
 /** 管理登录态恢复、登录、退出和当前用户资料的应用级 store。 */
 export const useAuthStore = defineStore('auth', () => {
