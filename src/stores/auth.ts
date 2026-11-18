@@ -1,15 +1,16 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { userApi } from '@/services/api/user'
+import { requestWechatCode, requestWechatProfile } from '@/shared/third-party/wechat-api'
+import type { UserProfile, UserTokenResponse } from '@/shared/types/user'
 import {
-  loginWithDevelopment,
-  loginWithWechat,
-  logoutWithRefreshToken,
-} from '@/pages/profile/login'
-import type { UserProfile } from '@/shared/types/user'
-import { clearAuthTokens, getAccessToken } from '@/shared/utils/token-storage'
+  clearAuthTokens,
+  getAccessToken,
+  getRefreshToken,
+  setAuthTokens,
+} from '@/shared/utils/token-storage'
 import { getUserFacingErrorMessage } from '@/shared/utils/error'
-import { RequestError } from '@/services/request'
+import { isDevelopment } from '@/shared/utils/platform'
 
 /** 认证状态机的当前状态。 */
 export type AuthStatus = 'idle' | 'loading' | 'anonymous' | 'authenticated' | 'error'
@@ -27,53 +28,46 @@ export const useAuthStore = defineStore('auth', () => {
   function resetLocalState(): void {
     profile.value = null
     status.value = 'anonymous'
+    errorMessage.value = ''
   }
 
   /** 根据本地访问令牌恢复当前用户资料。 */
   async function hydrate(): Promise<void> {
-    if (isBusy.value || status.value === 'loading') {
+    if (status.value === 'loading') {
       return
     }
 
-    errorMessage.value = ''
+    resetLocalState()
+
     if (!getAccessToken()) {
-      resetLocalState()
       return
     }
 
     status.value = 'loading'
-    isBusy.value = true
     try {
       profile.value = await userApi.getCurrentUser()
       status.value = 'authenticated'
     } catch (error) {
-      const unauthorized = isUnauthorizedError(error)
-      if (unauthorized) {
-        clearAuthTokens()
-      }
-      resetLocalState()
-      errorMessage.value = unauthorized
-        ? '登录状态已失效，请重新登录'
-        : getUserFacingErrorMessage(error)
-      if (!unauthorized) {
-        status.value = 'error'
-      }
-    } finally {
-      isBusy.value = false
+      // 取不到用户资料即视为未登录，退出后保持 anonymous 并携带错误提示。
+      logout()
+      errorMessage.value = getUserFacingErrorMessage(error)
+      throw error
     }
   }
 
   /** 执行登录动作并在成功或失败后同步认证状态。 */
-  async function login(action: () => Promise<UserProfile>): Promise<void> {
+  async function login(action: () => Promise<UserTokenResponse>): Promise<void> {
     if (isBusy.value) {
       return
     }
 
     isBusy.value = true
-    errorMessage.value = ''
     try {
-      profile.value = await action()
-      status.value = 'authenticated'
+      const tokenResponse = await action()
+      setAuthTokens({
+        accessToken: tokenResponse.accessToken,
+        refreshToken: tokenResponse.refreshToken,
+      })
     } catch (error) {
       resetLocalState()
       errorMessage.value = getUserFacingErrorMessage(error)
@@ -84,32 +78,38 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /** 使用微信登录并更新当前认证状态。 */
-  async function loginForWechat(): Promise<void> {
-    return login(loginWithWechat)
+  async function loginForWechat() {
+    await login(async () => {
+      const code = await requestWechatCode()
+      const info = await requestWechatProfile()
+      return userApi.loginWithWechat({
+        code: code,
+        nickname: info?.nickname,
+        avatarUrl: info?.avatarUrl,
+      })
+    })
+    await hydrate()
   }
 
-  /** 使用 H5 开发登录并更新当前认证状态。 */
-  async function loginForDevelopment(): Promise<void> {
-    return login(loginWithDevelopment)
+  /** 使用开发登录并更新当前认证状态。 */
+  async function loginForDevelopment() {
+    await login(() => {
+      if (!isDevelopment()) {
+        throw new Error('开发登录仅支持开发环境')
+      }
+      return userApi.loginForDevelopment({ nickname: '开发环境用户' })
+    })
+    await hydrate()
   }
 
-  /** 调用退出流程并无条件清理本地认证状态。 */
-  async function logout(): Promise<void> {
-    if (isBusy.value) {
-      return
+  /** 异步通知服务端撤销会话，并同步清理本地认证状态。 */
+  function logout(): void {
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      void userApi.logout(refreshToken).catch(() => undefined) // 服务端退出失败不影响本地退出状态。
     }
-
-    isBusy.value = true
-    errorMessage.value = ''
-    try {
-      await logoutWithRefreshToken()
-    } catch (error) {
-      errorMessage.value = getUserFacingErrorMessage(error)
-      throw error
-    } finally {
-      resetLocalState()
-      isBusy.value = false
-    }
+    clearAuthTokens()
+    resetLocalState()
   }
 
   return {
@@ -124,7 +124,3 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
   }
 })
-
-function isUnauthorizedError(error: unknown): boolean {
-  return error instanceof RequestError && (error.statusCode === 401 || error.code === 40100)
-}

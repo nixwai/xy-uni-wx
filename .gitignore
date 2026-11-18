@@ -7,5 +7,4 @@ coverage/
 .DS_Store
 .hbuilderx/
 .idea/
-.vscode/
 *.log

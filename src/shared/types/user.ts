@@ -15,7 +15,7 @@ export interface WechatLoginRequest {
   avatarUrl?: string
 }
 
-/** H5 开发登录接口请求参数。 */
+/** 开发登录接口请求参数。 */
 export interface DevelopmentLoginRequest {
   nickname?: string
 }

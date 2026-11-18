@@ -24,8 +24,8 @@ import ProfileUserInfo from './components/profile-user-info.vue'
 const authStore = useAuthStore()
 
 onMounted(() => {
-  // 进入个人页时恢复本地认证状态，再由模板选择加载、未登录或已登录视图。
-  void authStore.hydrate()
+  // 进入个人页时恢复本地认证状态，恢复失败时按未登录视图展示错误提示。
+  void authStore.hydrate().catch(() => undefined)
 })
 </script>
 

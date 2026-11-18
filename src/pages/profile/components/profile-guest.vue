@@ -6,16 +6,15 @@
     </view>
     <view class="profile-actions">
       <AppButton :loading="authStore.isBusy" @tap="handleWechatLogin">
-        {{ authStore.isBusy ? '登录中...' : '微信一键登录' }}
+        {{ authStore.isBusy ? '登录中...' : '登录/注册' }}
       </AppButton>
       <!-- #ifdef H5 -->
       <AppButton
         v-if="showDevelopmentLogin"
-        variant="secondary"
         :loading="authStore.isBusy"
         @tap="handleDevelopmentLogin"
       >
-        {{ authStore.isBusy ? '登录中...' : '开发登录（H5）' }}
+        {{ authStore.isBusy ? '登录中...' : '登录/注册' }}
       </AppButton>
       <!-- #endif -->
     </view>
@@ -25,11 +24,11 @@
 
 <script setup lang="ts">
 import AppButton from '@/components/ui/AppButton.vue'
+import { isDevelopment } from '@/shared/utils/platform'
 import { useAuthStore } from '@/stores'
-import { isH5Development } from '../login'
 
 const authStore = useAuthStore()
-const showDevelopmentLogin = isH5Development()
+const showDevelopmentLogin = isDevelopment()
 
 async function handleWechatLogin(): Promise<void> {
   try {
