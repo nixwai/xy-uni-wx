@@ -1,4 +1,4 @@
-:root {
+page {
   --app-background-color: #f5f7fb;
   --app-surface-color: #ffffff;
   --app-text-color: #172033;
@@ -8,10 +8,9 @@
   --app-primary-soft-color: #edf3ff;
   --app-success-color: #00b42a;
   --app-danger-color: #f04438;
-}
 
-page {
   min-height: 100%;
+  background-color: var(--app-background-color);
   background:
     radial-gradient(circle at 0% 0%, rgba(213, 226, 255, 0.78), transparent 46%),
     var(--app-background-color);
