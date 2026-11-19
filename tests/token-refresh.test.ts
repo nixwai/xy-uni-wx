@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { RequestError, request } from '@/services/request'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { RequestError, RequestClient, request } from '@/services/request'
 import {
   clearRefreshToken,
   getAccessToken,
@@ -130,5 +130,64 @@ describe('token refresh', () => {
     expect(error).toBeInstanceOf(RequestError)
     expect(refreshCalls).toBe(0)
     expect(getAccessToken()).toBeUndefined()
+  })
+})
+
+describe('request client', () => {
+  it('按生命周期顺序执行拦截器并解包响应', async () => {
+    const calls: string[] = []
+    const client = new RequestClient({
+      baseUrl: 'https://api.example.com',
+      timeoutMs: 5000,
+      adapter: (options) => {
+        calls.push(`${options.method}:${options.url}`)
+        return { statusCode: 200, data: { code: 0, data: { id: 'u1' } }, headers: {} }
+      },
+      requestInterceptors: [
+        (options) => {
+          calls.push('request')
+          return { ...options, headers: { 'X-Test': 'yes' } }
+        },
+      ],
+      responseInterceptors: [
+        (data) => {
+          calls.push('response')
+          return { ...data, name: 'Ada' }
+        },
+      ],
+    })
+
+    await expect(
+      client.request<{ id: string; name: string }>({ url: '/user/me' }),
+    ).resolves.toEqual({
+      id: 'u1',
+      name: 'Ada',
+    })
+    expect(calls).toEqual(['request', 'GET:https://api.example.com/user/me', 'response'])
+  })
+
+  it('只为首次未授权请求执行一次刷新和重放', async () => {
+    const refreshAccessToken = vi.fn().mockResolvedValue(true)
+    let attempts = 0
+    const client = new RequestClient({
+      baseUrl: 'https://api.example.com',
+      timeoutMs: 5000,
+      getToken: () => (attempts > 0 ? 'new-token' : 'old-token'),
+      refreshAccessToken,
+      adapter: (options) => {
+        attempts += 1
+        if (attempts === 1) {
+          return { statusCode: 401, data: { code: 40100, message: 'expired' }, headers: {} }
+        }
+        expect(options.headers.Authorization).toBe('Bearer new-token')
+        return { statusCode: 200, data: { code: 0, data: { ok: true } }, headers: {} }
+      },
+    })
+
+    await expect(client.request<{ ok: boolean }>({ url: '/protected' })).resolves.toEqual({
+      ok: true,
+    })
+    expect(refreshAccessToken).toHaveBeenCalledOnce()
+    expect(attempts).toBe(2)
   })
 })

@@ -15,7 +15,7 @@ export interface RequestOptions {
   data?: UniNamespace.RequestOptions['data']
   headers?: Readonly<Record<string, string>>
   timeoutMs?: number
-  /** 关闭登录态失效后的自动令牌刷新，刷新令牌接口自身必须关闭以避免递归。 */
+  /** 关闭登录态失效后的自动令牌刷新。 */
   skipTokenRefresh?: boolean
 }
 
@@ -37,10 +37,12 @@ export interface AdapterResponse {
 
 /** 执行平台请求并返回统一响应的适配器。 */
 export type RequestAdapter = (options: AdapterOptions) => Promise<AdapterResponse> | AdapterResponse
+
 /** 修改请求参数的拦截器。 */
 export type RequestInterceptor = (
   options: RequestOptions,
 ) => RequestOptions | Promise<RequestOptions>
+
 /** 修改响应数据的拦截器。 */
 export type ResponseInterceptor = <T>(data: T, response: AdapterResponse) => T | Promise<T>
 
@@ -53,6 +55,7 @@ export interface RequestClientOptions {
   timeoutMs: number
   adapter: RequestAdapter
   getToken?: () => string | undefined
+  refreshAccessToken?: () => Promise<boolean>
   onUnauthorized?: (error: RequestError) => void
   requestInterceptors?: readonly RequestInterceptor[]
   responseInterceptors?: readonly ResponseInterceptor[]

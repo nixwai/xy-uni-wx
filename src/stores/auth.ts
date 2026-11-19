@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { userApi } from '@/services/api/user'
-import { getUserFacingErrorMessage } from '@/services/error/error-message'
+import { getErrorMessage } from '@/services/error/error-message'
 import { requestWechatCode, requestWechatProfile } from '@/shared/third-party/wechat-api'
 import type { UserProfile, UserTokenResponse } from '@/shared/types/user'
 import {
@@ -50,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       // 取不到用户资料即视为未登录，退出后保持 anonymous 并携带错误提示。
       logout()
-      errorMessage.value = getUserFacingErrorMessage(error)
+      errorMessage.value = getErrorMessage(error)
       throw error
     }
   }
@@ -70,7 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
       })
     } catch (error) {
       resetLocalState()
-      errorMessage.value = getUserFacingErrorMessage(error)
+      errorMessage.value = getErrorMessage(error)
       throw error
     } finally {
       isBusy.value = false
