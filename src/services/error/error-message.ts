@@ -32,3 +32,25 @@ export function getErrorMessage(error: unknown): string {
 
   return '操作失败，请稍后重试'
 }
+
+/** 将请求生命周期中的异常归一化为带有用户可读文本的请求错误。 */
+export function normalizeRequestError(error: unknown): RequestError {
+  if (error instanceof RequestError) {
+    const message = getErrorMessage(error)
+    if (message === error.message) {
+      return error
+    }
+
+    return new RequestError(message, {
+      kind: error.kind,
+      statusCode: error.statusCode,
+      code: error.code,
+      cause: error.cause,
+    })
+  }
+
+  return new RequestError(getErrorMessage(error), {
+    kind: 'unknown',
+    cause: error,
+  })
+}

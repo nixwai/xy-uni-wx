@@ -2,6 +2,7 @@ import { appConfig } from '@/config'
 import { clearAuthTokens, getAccessToken } from '@/shared/utils/token-storage'
 import { joinUrl } from '@/shared/utils/url'
 import { createBusinessError, createHttpError, createNetworkError } from '../error/error-creator'
+import { normalizeRequestError } from '../error/error-message'
 import { createTokenRefresher } from './token-refresh'
 import { isApiEnvelope, isBusinessFailure, isUnauthorizedError } from './helpers'
 import type {
@@ -28,8 +29,15 @@ export class RequestClient {
 
   /** 发起请求，并在登录态失效时刷新令牌后重放一次。 */
   async request<TResponse = unknown>(input: RequestOptions): Promise<TResponse> {
-    const options = await this.applyRequestInterceptors(input)
+    try {
+      const options = await this.applyRequestInterceptors(input)
+      return await this.requestWithTokenRefresh<TResponse>(options)
+    } catch (error) {
+      throw normalizeRequestError(error)
+    }
+  }
 
+  private async requestWithTokenRefresh<TResponse>(options: RequestOptions): Promise<TResponse> {
     try {
       return await this.execute<TResponse>(options)
     } catch (error) {

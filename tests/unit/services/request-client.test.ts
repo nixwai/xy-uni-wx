@@ -36,6 +36,37 @@ describe('RequestClient', () => {
     })
   })
 
+  it('在请求错误边界统一生成用户可读的异常文本', async () => {
+    await expect(
+      client(async () => ({ statusCode: 500, data: {}, headers: {} })).request({ url: '/a' }),
+    ).rejects.toMatchObject({
+      kind: 'http',
+      message: '服务暂时不可用，请稍后重试',
+    })
+
+    await expect(
+      client(async () => {
+        throw new RequestError('请求超时', { kind: 'timeout' })
+      }).request({ url: '/a' }),
+    ).rejects.toMatchObject({
+      kind: 'timeout',
+      message: '请求超时，请稍后重试',
+    })
+
+    await expect(
+      client(async () => ({ statusCode: 200, data: { ok: true }, headers: {} }), {
+        responseInterceptors: [
+          () => {
+            throw new Error('响应转换失败')
+          },
+        ],
+      }).request({ url: '/a' }),
+    ).rejects.toMatchObject({
+      kind: 'unknown',
+      message: '响应转换失败',
+    })
+  })
+
   it('报告 HTTP、业务和网络错误', async () => {
     await expect(
       client(async () => ({ statusCode: 500, data: { message: 'server' }, headers: {} })).request({
@@ -53,7 +84,7 @@ describe('RequestClient', () => {
       client(async () => {
         throw new Error('offline')
       }).request({ url: '/a' }),
-    ).rejects.toMatchObject({ kind: 'network', message: '网络请求失败' })
+    ).rejects.toMatchObject({ kind: 'network', message: '网络连接失败，请检查网络后重试' })
   })
 
   it('未授权时刷新并只重放一次，刷新失败则通知并抛错', async () => {
@@ -82,7 +113,11 @@ describe('RequestClient', () => {
         },
         { refreshAccessToken: async () => false, onUnauthorized: notify },
       ).request({ url: '/a' }),
-    ).rejects.toBe(failure)
+    ).rejects.toMatchObject({
+      kind: 'http',
+      statusCode: 401,
+      message: '登录状态已失效，请重新登录',
+    })
     expect(notify).toHaveBeenCalledWith(failure)
   })
 
@@ -97,7 +132,11 @@ describe('RequestClient', () => {
         },
         { refreshAccessToken: refresh, onUnauthorized: notify },
       ).request({ url: '/a', skipTokenRefresh: true }),
-    ).rejects.toBe(error)
+    ).rejects.toMatchObject({
+      kind: 'http',
+      statusCode: 401,
+      message: '登录状态已失效，请重新登录',
+    })
     expect(refresh).not.toHaveBeenCalled()
     expect(notify).toHaveBeenCalledTimes(1)
 
@@ -111,7 +150,11 @@ describe('RequestClient', () => {
         },
         { refreshAccessToken: async () => true, onUnauthorized: notify },
       ).request({ url: '/b' }),
-    ).rejects.toBe(repeatError)
+    ).rejects.toMatchObject({
+      kind: 'http',
+      statusCode: 401,
+      message: '登录状态已失效，请重新登录',
+    })
     expect(calls).toBe(2)
   })
 })
