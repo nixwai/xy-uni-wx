@@ -37,6 +37,7 @@ function parseRequestTimeout(value: string | undefined): number {
   return timeoutMs
 }
 
+/** 校验公开环境变量并生成不可变的应用运行时配置。 */
 export function createAppConfig(env: PublicEnv): AppConfig {
   return Object.freeze({
     apiBaseUrl: normalizeBaseUrl(env.VITE_API_BASE_URL),
@@ -44,6 +45,7 @@ export function createAppConfig(env: PublicEnv): AppConfig {
   })
 }
 
+/** 当前构建使用的公开运行时配置。 */
 export const appConfig = createAppConfig({
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
   VITE_REQUEST_TIMEOUT: import.meta.env.VITE_REQUEST_TIMEOUT,

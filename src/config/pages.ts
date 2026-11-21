@@ -1,5 +1,6 @@
 import { PAGE_PATHS, TAB_BAR_ITEMS } from '../router/routes'
 
+/** 页面和原生 tabBar 的统一配置源。 */
 export const pagesConfig = {
   pages: [
     {
@@ -23,10 +24,10 @@ export const pagesConfig = {
     backgroundTextStyle: 'light',
   },
   tabBar: {
-    color: '#86909C',
-    selectedColor: '#1D2129',
+    color: '#8993A7',
+    selectedColor: '#356DFF',
     backgroundColor: '#FFFFFF',
-    borderStyle: 'black',
+    borderStyle: 'white',
     list: TAB_BAR_ITEMS,
   },
 } as const
