@@ -7,10 +7,10 @@ import { getAccessToken, getRefreshToken, setAuthTokens } from '@/shared/utils/t
 
 vi.mock('@/services/api/user', () => ({
   userApi: {
-    getCurrentUser: vi.fn(),
-    loginWithWechat: vi.fn(),
-    loginForDevelopment: vi.fn(),
-    logout: vi.fn(),
+    fetchUserMe: vi.fn(),
+    fetchAuthWechatLogin: vi.fn(),
+    fetchAuthDevLogin: vi.fn(),
+    fetchAuthUserLogout: vi.fn(),
   },
 }))
 vi.mock('@/shared/third-party/wechat-api', () => ({
@@ -56,18 +56,18 @@ describe('useAuthStore', () => {
     expect(store.status).toBe('anonymous')
     expect(store.profile).toBeNull()
     expect(store.isAuthenticated).toBe(false)
-    expect(userApi.getCurrentUser).not.toHaveBeenCalled()
+    expect(userApi.fetchUserMe).not.toHaveBeenCalled()
   })
   it('用访问令牌恢复用户资料，失败时清理本地状态并保留错误提示', async () => {
     setAuthTokens(tokenResponse)
-    vi.mocked(userApi.getCurrentUser).mockResolvedValueOnce(profile)
+    vi.mocked(userApi.fetchUserMe).mockResolvedValueOnce(profile)
     const store = useAuthStore()
     await store.hydrate()
     expect(store.status).toBe('authenticated')
     expect(store.profile).toEqual(profile)
     expect(store.isAuthenticated).toBe(true)
-    vi.mocked(userApi.getCurrentUser).mockRejectedValueOnce(new Error('恢复失败'))
-    vi.mocked(userApi.logout).mockResolvedValue(null)
+    vi.mocked(userApi.fetchUserMe).mockRejectedValueOnce(new Error('恢复失败'))
+    vi.mocked(userApi.fetchAuthUserLogout).mockResolvedValue(null)
     await expect(store.hydrate()).rejects.toThrow('恢复失败')
     expect(store.status).toBe('anonymous')
     expect(store.profile).toBeNull()
@@ -75,8 +75,8 @@ describe('useAuthStore', () => {
     expect(getAccessToken()).toBeUndefined()
   })
   it('登录成功后保存令牌并恢复用户资料', async () => {
-    vi.mocked(userApi.loginForDevelopment).mockResolvedValue(tokenResponse)
-    vi.mocked(userApi.getCurrentUser).mockResolvedValue(profile)
+    vi.mocked(userApi.fetchAuthDevLogin).mockResolvedValue(tokenResponse)
+    vi.mocked(userApi.fetchUserMe).mockResolvedValue(profile)
     const store = useAuthStore()
     const { isDevelopment } = await import('@/shared/utils/platform')
     vi.mocked(isDevelopment).mockReturnValue(true)
@@ -88,11 +88,11 @@ describe('useAuthStore', () => {
   it('微信登录会组合凭证、可选资料和用户接口', async () => {
     vi.mocked(requestWechatCode).mockResolvedValue('code')
     vi.mocked(requestWechatProfile).mockResolvedValue({ nickname: '昵称', avatarUrl: 'avatar' })
-    vi.mocked(userApi.loginWithWechat).mockResolvedValue(tokenResponse)
-    vi.mocked(userApi.getCurrentUser).mockResolvedValue(profile)
+    vi.mocked(userApi.fetchAuthWechatLogin).mockResolvedValue(tokenResponse)
+    vi.mocked(userApi.fetchUserMe).mockResolvedValue(profile)
     const store = useAuthStore()
     await store.loginForWechat()
-    expect(userApi.loginWithWechat).toHaveBeenCalledWith({
+    expect(userApi.fetchAuthWechatLogin).toHaveBeenCalledWith({
       code: 'code',
       nickname: '昵称',
       avatarUrl: 'avatar',
@@ -100,7 +100,7 @@ describe('useAuthStore', () => {
     expect(store.status).toBe('authenticated')
   })
   it('登录失败时记录错误并释放忙碌状态', async () => {
-    vi.mocked(userApi.loginForDevelopment).mockRejectedValue(new Error('登录失败'))
+    vi.mocked(userApi.fetchAuthDevLogin).mockRejectedValue(new Error('登录失败'))
     const { isDevelopment } = await import('@/shared/utils/platform')
     vi.mocked(isDevelopment).mockReturnValue(true)
     const store = useAuthStore()
@@ -114,11 +114,11 @@ describe('useAuthStore', () => {
     vi.mocked(isDevelopment).mockReturnValue(false)
     const store = useAuthStore()
     await expect(store.loginForDevelopment()).rejects.toThrow('开发登录仅支持开发环境')
-    expect(userApi.loginForDevelopment).not.toHaveBeenCalled()
+    expect(userApi.fetchAuthDevLogin).not.toHaveBeenCalled()
     expect(store.errorMessage).toBe('开发登录仅支持开发环境')
     vi.mocked(isDevelopment).mockReturnValue(true)
     let resolveLogin: ((value: typeof tokenResponse) => void) | undefined
-    vi.mocked(userApi.loginForDevelopment).mockImplementation(
+    vi.mocked(userApi.fetchAuthDevLogin).mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveLogin = resolve
@@ -127,17 +127,17 @@ describe('useAuthStore', () => {
     const first = store.loginForDevelopment()
     const second = store.loginForDevelopment()
     resolveLogin?.(tokenResponse)
-    vi.mocked(userApi.getCurrentUser).mockResolvedValue(profile)
+    vi.mocked(userApi.fetchUserMe).mockResolvedValue(profile)
     await Promise.all([first, second])
-    expect(userApi.loginForDevelopment).toHaveBeenCalledTimes(1)
+    expect(userApi.fetchAuthDevLogin).toHaveBeenCalledTimes(1)
   })
   it('退出时清理本地认证状态并通知服务端，服务端失败不阻断退出', async () => {
     setAuthTokens(tokenResponse)
-    vi.mocked(userApi.logout).mockRejectedValue(new Error('服务端失败'))
+    vi.mocked(userApi.fetchAuthUserLogout).mockRejectedValue(new Error('服务端失败'))
     const store = useAuthStore()
     store.logout()
     await Promise.resolve()
-    expect(userApi.logout).toHaveBeenCalledWith('refresh')
+    expect(userApi.fetchAuthUserLogout).toHaveBeenCalledWith('refresh')
     expect(getAccessToken()).toBeUndefined()
     expect(getRefreshToken()).toBeUndefined()
     expect(store.status).toBe('anonymous')

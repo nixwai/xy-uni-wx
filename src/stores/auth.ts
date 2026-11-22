@@ -45,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     status.value = 'loading'
     try {
-      profile.value = await userApi.getCurrentUser()
+      profile.value = await userApi.fetchUserMe()
       status.value = 'authenticated'
     } catch (error) {
       // 取不到用户资料即视为未登录，退出后保持 anonymous 并携带错误提示。
@@ -82,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
     await login(async () => {
       const code = await requestWechatCode()
       const info = await requestWechatProfile()
-      return userApi.loginWithWechat({
+      return userApi.fetchAuthWechatLogin({
         code: code,
         nickname: info?.nickname,
         avatarUrl: info?.avatarUrl,
@@ -97,7 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (!isDevelopment()) {
         throw new Error('开发登录仅支持开发环境')
       }
-      return userApi.loginForDevelopment({ nickname: '开发环境用户' })
+      return userApi.fetchAuthDevLogin({ nickname: '开发环境用户' })
     })
     await hydrate()
   }
@@ -106,7 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout(): void {
     const refreshToken = getRefreshToken()
     if (refreshToken) {
-      void userApi.logout(refreshToken).catch(() => undefined) // 服务端退出失败不影响本地退出状态。
+      void userApi.fetchAuthUserLogout(refreshToken).catch(() => undefined) // 服务端退出失败不影响本地退出状态。
     }
     clearAuthTokens()
     resetLocalState()

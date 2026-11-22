@@ -10,14 +10,14 @@ describe('userApi', () => {
       .mockResolvedValueOnce({ accessToken: 'a', refreshToken: 'r', user: { id: 'u1' } })
       .mockResolvedValueOnce({ id: 'u1' })
       .mockResolvedValueOnce(null)
-    await expect(userApi.loginWithWechat({ code: 'c' })).resolves.toMatchObject({
+    await expect(userApi.fetchAuthWechatLogin({ code: 'c' })).resolves.toMatchObject({
       accessToken: 'a',
     })
-    await expect(userApi.loginForDevelopment({ nickname: 'dev' })).resolves.toMatchObject({
+    await expect(userApi.fetchAuthDevLogin({ nickname: 'dev' })).resolves.toMatchObject({
       refreshToken: 'r',
     })
-    await expect(userApi.getCurrentUser()).resolves.toEqual({ id: 'u1' })
-    await expect(userApi.logout('r')).resolves.toBeNull()
+    await expect(userApi.fetchUserMe()).resolves.toEqual({ id: 'u1' })
+    await expect(userApi.fetchAuthUserLogout('r')).resolves.toBeNull()
     expect(request).toHaveBeenNthCalledWith(1, {
       url: '/auth/wechat/login',
       method: 'POST',
@@ -37,9 +37,9 @@ describe('userApi', () => {
   })
   it('拒绝缺少关键字段的登录和用户响应', async () => {
     request.mockResolvedValue({ accessToken: 'a', refreshToken: 'r', user: {} })
-    await expect(userApi.loginWithWechat({ code: 'c' })).rejects.toThrow('登录失败')
-    await expect(userApi.loginForDevelopment()).rejects.toThrow('登录失败')
+    await expect(userApi.fetchAuthWechatLogin({ code: 'c' })).rejects.toThrow('登录失败')
+    await expect(userApi.fetchAuthDevLogin()).rejects.toThrow('登录失败')
     request.mockResolvedValue({})
-    await expect(userApi.getCurrentUser()).rejects.toThrow('用户信息获取失败')
+    await expect(userApi.fetchUserMe()).rejects.toThrow('用户信息获取失败')
   })
 })

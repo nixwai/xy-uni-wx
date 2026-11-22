@@ -25,6 +25,7 @@
 - `src/components`：跨页面复用的 UI 组件和业务无关的交互能力。只有稳定复用、无具体页面依赖的能力才上升到该目录。
 - `src/services/request`：底层请求客户端、适配器、拦截器和请求类型。业务代码不得直接调用底层请求实现。
 - `src/services/api`：按业务领域维护接口函数和接口类型，页面不得分散硬编码请求路径。
+- `src/services/api` 中的接口请求函数统一命名为 `fetch` 加接口路由各段的 PascalCase；忽略首尾斜杠，连字符按单词拆分，动态路径参数不纳入函数名，例如 `/auth/user/logout` 命名为 `fetchAuthUserLogout`。
 - `src/config`：应用级运行时配置。页面与原生 tabBar 的配置源为 `src/config/pages.ts`，`src/pages.json` 为生成文件，不直接修改生成文件。
 - `src/router`：路由路径常量、页面地址转换和导航封装。业务代码统一通过路由模块跳转。
 - `src/shared/types`、`src/shared/utils`：跨页面复用的类型和纯工具函数；具备明确业务归属的能力不得无理由上升到 shared。

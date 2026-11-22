@@ -7,7 +7,7 @@ import type {
 } from '@/shared/types/user'
 
 export const userApi = Object.freeze({
-  async loginWithWechat(payload: WechatLoginRequest): Promise<UserTokenResponse> {
+  async fetchAuthWechatLogin(payload: WechatLoginRequest): Promise<UserTokenResponse> {
     const response = await request<UserTokenResponse>({
       url: '/auth/wechat/login',
       method: 'POST',
@@ -19,7 +19,7 @@ export const userApi = Object.freeze({
     return response
   },
 
-  async loginForDevelopment(payload: DevelopmentLoginRequest = {}): Promise<UserTokenResponse> {
+  async fetchAuthDevLogin(payload: DevelopmentLoginRequest = {}): Promise<UserTokenResponse> {
     const response = await request<UserTokenResponse>({
       url: '/auth/dev/login',
       method: 'POST',
@@ -31,7 +31,7 @@ export const userApi = Object.freeze({
     return response
   },
 
-  async getCurrentUser(): Promise<UserProfile> {
+  async fetchUserMe(): Promise<UserProfile> {
     const response = await request<UserProfile>({
       url: '/user/me',
       method: 'GET',
@@ -42,7 +42,7 @@ export const userApi = Object.freeze({
     return response
   },
 
-  logout(refreshToken: string): Promise<null> {
+  fetchAuthUserLogout(refreshToken: string): Promise<null> {
     return request<null>({
       url: '/auth/user/logout',
       method: 'POST',
